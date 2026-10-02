@@ -26,12 +26,14 @@ REGRAS MANDATÓRIAS (GUARDRAILS):
 
 
 class GeminiProvider(BaseAIProvider):
-    """Provedor concreto utilizando Google Gemini com cache em memória e alta resiliência."""
+    """
+    Provedor de IA utilizando EXCLUSIVAMENTE o novo SDK oficial do Google GenAI (google-genai).
+    Implementa as melhores práticas de Clean Code, cache em memória e alta resiliência.
+    """
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
-        self.client_genai = None
-        self.legacy_genai = None
+        self.client = None
         # Cache em memória thread-safe para embeddings de consultas frequentes
         self._embedding_cache: Dict[str, List[float]] = {}
         self._cache_lock = threading.Lock()
@@ -43,26 +45,16 @@ class GeminiProvider(BaseAIProvider):
             logger.info("GeminiProvider: Nenhuma GEMINI_API_KEY configurada. Operando em modo de espera.")
             return
 
-        # 1. Tenta novo SDK oficial google-genai (2.x)
         try:
             from google import genai
-            self.client_genai = genai.Client(api_key=self.api_key)
-            logger.info("GeminiProvider: Inicializado com google-genai 2.x com sucesso.")
-            return
+            self.client = genai.Client(api_key=self.api_key)
+            logger.info(f"GeminiProvider: Conectado com sucesso ao SDK Oficial Google GenAI ({settings.GEMINI_MODEL}).")
         except Exception as err:
-            logger.debug(f"google-genai 2.x não inicializado: {err}")
-
-        # 2. Fallback para google.generativeai legado
-        try:
-            import google.generativeai as genai_legacy
-            genai_legacy.configure(api_key=self.api_key)
-            self.legacy_genai = genai_legacy
-            logger.info("GeminiProvider: Inicializado com google.generativeai legado com sucesso.")
-        except Exception as err:
-            logger.error(f"Falha ao inicializar SDKs do Gemini: {err}")
+            logger.error(f"Falha ao inicializar o SDK Google GenAI: {err}", exc_info=True)
+            self.client = None
 
     def is_configured(self) -> bool:
-        return bool(self.api_key and (self.client_genai or self.legacy_genai))
+        return bool(self.api_key and self.client)
 
     def embed_query(self, query: str) -> Optional[List[float]]:
         if not self.is_configured():
@@ -77,26 +69,15 @@ class GeminiProvider(BaseAIProvider):
             if clean_query in self._embedding_cache:
                 return self._embedding_cache[clean_query]
 
-        # 2. Gera novo embedding via API com retry
+        # 2. Gera novo embedding via API oficial Google GenAI com retry
         for attempt in range(1, 3):
             try:
-                embedding = None
-                if self.client_genai:
-                    res = self.client_genai.models.embed_content(
-                        model=settings.GEMINI_EMBEDDING_MODEL,
-                        contents=query,
-                    )
-                    if res.embeddings:
-                        embedding = res.embeddings[0].values
-                elif self.legacy_genai:
-                    res = self.legacy_genai.embed_content(
-                        model=f"models/{settings.GEMINI_EMBEDDING_MODEL}",
-                        content=query,
-                        task_type="retrieval_query"
-                    )
-                    embedding = res.get("embedding")
-
-                if embedding:
+                res = self.client.models.embed_content(
+                    model=settings.GEMINI_EMBEDDING_MODEL,
+                    contents=query,
+                )
+                if res.embeddings:
+                    embedding = res.embeddings[0].values
                     with self._cache_lock:
                         if len(self._embedding_cache) >= self._max_cache_size:
                             # Remove o item mais antigo (FIFO/LRU simples)
@@ -105,7 +86,7 @@ class GeminiProvider(BaseAIProvider):
                     return embedding
 
             except Exception as err:
-                logger.warning(f"Tentativa {attempt} de embedding falhou: {err}")
+                logger.warning(f"Tentativa {attempt} de embedding com Google GenAI falhou: {err}")
                 if attempt == 1:
                     time.sleep(0.5)
 
@@ -159,51 +140,41 @@ class GeminiProvider(BaseAIProvider):
         last_error = None
         for attempt in range(1, 3):
             try:
-                if self.client_genai:
-                    from google.genai import types
+                from google.genai import types
 
-                    contents = []
-                    for role, text in sanitized_history:
-                        contents.append(types.Content(
-                            role=role,
-                            parts=[types.Part.from_text(text=text)]
-                        ))
-
+                contents = []
+                for role, text in sanitized_history:
                     contents.append(types.Content(
-                        role="user",
-                        parts=[types.Part.from_text(text=user_prompt)]
+                        role=role,
+                        parts=[types.Part.from_text(text=text)]
                     ))
 
-                    config = types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT,
-                        temperature=0.2,
-                        max_output_tokens=2048,
-                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-                    )
+                contents.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=user_prompt)]
+                ))
 
-                    response = self.client_genai.models.generate_content(
-                        model=settings.GEMINI_MODEL,
-                        contents=contents,
-                        config=config,
-                    )
-                    return response.text or "Não foi possível gerar a resposta para esta pergunta."
+                config = types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.2,
+                    max_output_tokens=2048,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                )
 
-                elif self.legacy_genai:
-                    model = self.legacy_genai.GenerativeModel(
-                        model_name=settings.GEMINI_MODEL,
-                        system_instruction=SYSTEM_PROMPT,
-                        generation_config={"temperature": 0.2, "max_output_tokens": 2048}
-                    )
-                    response = model.generate_content(user_prompt)
-                    return response.text or "Não foi possível gerar a resposta para esta pergunta."
+                response = self.client.models.generate_content(
+                    model=settings.GEMINI_MODEL,
+                    contents=contents,
+                    config=config,
+                )
+                return response.text or "Não foi possível gerar a resposta para esta pergunta."
 
             except Exception as err:
                 last_error = err
-                logger.warning(f"Tentativa {attempt} com Gemini falhou ({err}). Realizando retry...")
+                logger.warning(f"Tentativa {attempt} com Google GenAI falhou ({err}). Realizando retry...")
                 if attempt == 1:
                     time.sleep(1.0)
 
-        logger.error(f"Todas as tentativas com Gemini falharam: {last_error}", exc_info=True)
+        logger.error(f"Todas as tentativas com Google GenAI falharam: {last_error}", exc_info=True)
         return f"Ocorreu uma instabilidade na consulta ao modelo: {str(last_error)}. Por favor, tente novamente em instantes."
 
 
