@@ -24,7 +24,8 @@ def test_api_health():
     assert data["status"] == "healthy"
     assert data["chunks_count"] > 0
     assert data["bm25_ready"] is True
-    print(f"[PASS] /api/health: {data['chunks_count']} chunks ativos.")
+    assert data["vectors_ready"] is True
+    print(f"[PASS] /api/health: {data['chunks_count']} chunks ativos (BM25: True, Vetores: True).")
 
 
 def test_api_search():

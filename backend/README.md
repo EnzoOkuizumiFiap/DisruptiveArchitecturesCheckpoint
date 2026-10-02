@@ -34,7 +34,8 @@ pip install -r requirements.txt
 Crie um arquivo `.env` na pasta `backend/` baseado no `.env.example`:
 ```env
 GEMINI_API_KEY=sua_chave_do_google_ai_studio
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_EMBEDDING_MODEL=gemini-embedding-2
 PORT=8000
 ```
 > *Obtenha sua chave gratuita em: [Google AI Studio](https://aistudio.google.com/)*
