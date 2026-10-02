@@ -34,28 +34,43 @@ class ConversationMemory(BaseSessionManager):
         self._load_from_disk()
 
     def _load_from_disk(self):
-        """Carrega sessões salvas em disco se existirem."""
+        """Carrega sessões salvas em disco se existirem e purga expiradas."""
         if self.storage_path and self.storage_path.exists():
             try:
                 data = json.loads(self.storage_path.read_text(encoding="utf-8"))
                 self.sessions = data
-                logger.info(f"ConversationMemory: {len(self.sessions)} sessões carregadas de {self.storage_path.name}")
+                self._prune_expired_sessions(time.time())
+                logger.info(f"ConversationMemory: {len(self.sessions)} sessões ativas carregadas de {self.storage_path.name}")
             except Exception as err:
                 logger.error(f"Erro ao carregar sessões de {self.storage_path}: {err}")
                 self.sessions = {}
 
+    def _prune_expired_sessions(self, now: float):
+        """Remove sessões inativas que excederam o tempo limite (TTL)."""
+        cutoff = now - self.ttl_seconds
+        expired_keys = [
+            sid for sid, s in self.sessions.items()
+            if s.get("last_active", s.get("created_at", 0)) < cutoff
+        ]
+        for sid in expired_keys:
+            del self.sessions[sid]
+
     def _save_to_disk(self):
-        """Salva o estado atual das sessões em disco."""
+        """
+        Salva o estado atual das sessões em disco de forma estritamente ATÔMICA.
+        Escreve em arquivo temporário e faz o replace para impedir qualquer risco de corrupção.
+        """
         if not self.storage_path:
             return
         try:
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-            self.storage_path.write_text(
-                json.dumps(self.sessions, ensure_ascii=False, indent=2),
-                encoding="utf-8"
-            )
+            self._prune_expired_sessions(time.time())
+            temp_path = self.storage_path.with_suffix(f".tmp_{uuid.uuid4().hex[:6]}")
+            content = json.dumps(self.sessions, ensure_ascii=False, indent=2)
+            temp_path.write_text(content, encoding="utf-8")
+            temp_path.replace(self.storage_path)
         except Exception as err:
-            logger.error(f"Erro ao salvar sessões em disco: {err}")
+            logger.error(f"Erro ao salvar sessões atômicas em disco: {err}")
 
     def get_or_create_session(self, session_id: Optional[str] = None) -> str:
         with self._lock:

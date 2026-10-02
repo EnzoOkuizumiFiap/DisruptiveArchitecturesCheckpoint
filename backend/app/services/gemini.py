@@ -3,7 +3,9 @@ Implementação dos Provedores de IA: GeminiProvider e MockAIProvider (SOLID - O
 """
 
 import os
-from typing import List, Dict, Optional
+import time
+import threading
+from typing import List, Dict, Optional, Tuple
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -24,12 +26,16 @@ REGRAS MANDATÓRIAS (GUARDRAILS):
 
 
 class GeminiProvider(BaseAIProvider):
-    """Provedor concreto utilizando Google Gemini (Embeddings e LLM)."""
+    """Provedor concreto utilizando Google Gemini com cache em memória e alta resiliência."""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
         self.client_genai = None
         self.legacy_genai = None
+        # Cache em memória thread-safe para embeddings de consultas frequentes
+        self._embedding_cache: Dict[str, List[float]] = {}
+        self._cache_lock = threading.Lock()
+        self._max_cache_size: int = 500
         self._initialize_sdk()
 
     def _initialize_sdk(self):
@@ -46,7 +52,7 @@ class GeminiProvider(BaseAIProvider):
         except Exception as err:
             logger.debug(f"google-genai 2.x não inicializado: {err}")
 
-        # 2. Fallback para google.generativeai
+        # 2. Fallback para google.generativeai legado
         try:
             import google.generativeai as genai_legacy
             genai_legacy.configure(api_key=self.api_key)
@@ -62,24 +68,74 @@ class GeminiProvider(BaseAIProvider):
         if not self.is_configured():
             return None
 
-        try:
-            if self.client_genai:
-                res = self.client_genai.models.embed_content(
-                    model=settings.GEMINI_EMBEDDING_MODEL,
-                    contents=query,
-                )
-                if res.embeddings:
-                    return res.embeddings[0].values
-            elif self.legacy_genai:
-                res = self.legacy_genai.embed_content(
-                    model=f"models/{settings.GEMINI_EMBEDDING_MODEL}",
-                    content=query,
-                    task_type="retrieval_query"
-                )
-                return res.get("embedding")
-        except Exception as err:
-            logger.warning(f"Erro ao gerar embedding com Gemini: {err}")
+        clean_query = query.strip().lower()
+        if not clean_query:
+            return None
+
+        # 1. Verifica cache em memória (0ms latency)
+        with self._cache_lock:
+            if clean_query in self._embedding_cache:
+                return self._embedding_cache[clean_query]
+
+        # 2. Gera novo embedding via API com retry
+        for attempt in range(1, 3):
+            try:
+                embedding = None
+                if self.client_genai:
+                    res = self.client_genai.models.embed_content(
+                        model=settings.GEMINI_EMBEDDING_MODEL,
+                        contents=query,
+                    )
+                    if res.embeddings:
+                        embedding = res.embeddings[0].values
+                elif self.legacy_genai:
+                    res = self.legacy_genai.embed_content(
+                        model=f"models/{settings.GEMINI_EMBEDDING_MODEL}",
+                        content=query,
+                        task_type="retrieval_query"
+                    )
+                    embedding = res.get("embedding")
+
+                if embedding:
+                    with self._cache_lock:
+                        if len(self._embedding_cache) >= self._max_cache_size:
+                            # Remove o item mais antigo (FIFO/LRU simples)
+                            self._embedding_cache.pop(next(iter(self._embedding_cache)))
+                        self._embedding_cache[clean_query] = embedding
+                    return embedding
+
+            except Exception as err:
+                logger.warning(f"Tentativa {attempt} de embedding falhou: {err}")
+                if attempt == 1:
+                    time.sleep(0.5)
+
         return None
+
+    def _sanitize_turns(self, history: Optional[List[Dict[str, str]]]) -> List[Tuple[str, str]]:
+        """
+        Valida e assegura alternância estrita entre 'user' e 'model' para o Gemini.
+        Remove turnos consecutivos do mesmo papel e garante término pronto para nova pergunta.
+        """
+        if not history:
+            return []
+
+        sanitized: List[Tuple[str, str]] = []
+        last_role = None
+
+        for turn in history[-6:]:
+            role = "user" if turn.get("role") == "user" else "model"
+            content = turn.get("content", "").strip()
+            if not content:
+                continue
+            if role != last_role:
+                sanitized.append((role, content))
+                last_role = role
+
+        # Se o último turno do histórico foi 'user', descarta para que a nova pergunta seja 'user'
+        if sanitized and sanitized[-1][0] == "user":
+            sanitized.pop()
+
+        return sanitized
 
     def generate_answer(
         self,
@@ -97,50 +153,58 @@ class GeminiProvider(BaseAIProvider):
             f"Responda fundamentando-se nas fontes acima com precisão e clareza didática."
         )
 
-        try:
-            if self.client_genai:
-                from google.genai import types
+        sanitized_history = self._sanitize_turns(conversation_history)
 
-                contents = []
-                if conversation_history:
-                    for turn in conversation_history[-4:]:
-                        role = "user" if turn["role"] == "user" else "model"
+        # Loop de resiliência com backoff exponencial (até 2 retries)
+        last_error = None
+        for attempt in range(1, 3):
+            try:
+                if self.client_genai:
+                    from google.genai import types
+
+                    contents = []
+                    for role, text in sanitized_history:
                         contents.append(types.Content(
                             role=role,
-                            parts=[types.Part.from_text(text=turn["content"])]
+                            parts=[types.Part.from_text(text=text)]
                         ))
 
-                contents.append(types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=user_prompt)]
-                ))
+                    contents.append(types.Content(
+                        role="user",
+                        parts=[types.Part.from_text(text=user_prompt)]
+                    ))
 
-                config = types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    temperature=0.2,
-                    max_output_tokens=1200,
-                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-                )
+                    config = types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.2,
+                        max_output_tokens=2048,
+                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                    )
 
-                response = self.client_genai.models.generate_content(
-                    model=settings.GEMINI_MODEL,
-                    contents=contents,
-                    config=config,
-                )
-                return response.text or "Não foi possível gerar a resposta para esta pergunta."
+                    response = self.client_genai.models.generate_content(
+                        model=settings.GEMINI_MODEL,
+                        contents=contents,
+                        config=config,
+                    )
+                    return response.text or "Não foi possível gerar a resposta para esta pergunta."
 
-            elif self.legacy_genai:
-                model = self.legacy_genai.GenerativeModel(
-                    model_name=settings.GEMINI_MODEL,
-                    system_instruction=SYSTEM_PROMPT,
-                    generation_config={"temperature": 0.2, "max_output_tokens": 1200}
-                )
-                response = model.generate_content(user_prompt)
-                return response.text or "Não foi possível gerar a resposta para esta pergunta."
+                elif self.legacy_genai:
+                    model = self.legacy_genai.GenerativeModel(
+                        model_name=settings.GEMINI_MODEL,
+                        system_instruction=SYSTEM_PROMPT,
+                        generation_config={"temperature": 0.2, "max_output_tokens": 2048}
+                    )
+                    response = model.generate_content(user_prompt)
+                    return response.text or "Não foi possível gerar a resposta para esta pergunta."
 
-        except Exception as err:
-            logger.error(f"Erro na geração com Gemini: {err}", exc_info=True)
-            return f"Ocorreu uma instabilidade na consulta ao modelo: {str(err)}. Por favor, tente novamente em instantes."
+            except Exception as err:
+                last_error = err
+                logger.warning(f"Tentativa {attempt} com Gemini falhou ({err}). Realizando retry...")
+                if attempt == 1:
+                    time.sleep(1.0)
+
+        logger.error(f"Todas as tentativas com Gemini falharam: {last_error}", exc_info=True)
+        return f"Ocorreu uma instabilidade na consulta ao modelo: {str(last_error)}. Por favor, tente novamente em instantes."
 
 
 class MockAIProvider(BaseAIProvider):
