@@ -2,8 +2,19 @@
 
 **Assistente Virtual Acadêmico com RAG Híbrido (BM25 + Vetores) & Google Gemini**  
 *FIAP — Tecnologia em Desenvolvimento de Sistemas (TDS) 2026*  
-**Aluno:** Enzo Okuizumi  
 **Professor:** Arnaldo Viana  
+
+---
+
+## 👥 Equipe de Desenvolvimento 
+
+| Nome | RM | GitHub | LinkedIn |
+| :--- | :---: | :---: | :--- |
+| **Enzo Okuizumi** | **561432** | [EnzoOkuizumiFiap](https://github.com/EnzoOkuizumiFiap) | [LinkedIn](https://www.linkedin.com/in/enzo-okuizumi-b60292256/) |
+| **Gustavo Okada** | **563428** | [Gdev3356](https://github.com/Gdev3356) | [LinkedIn](https://www.linkedin.com/in/gustavo-okada-53a3b8359/) |
+| **Lucas Barros Gouveia** | **566422** | [LuzBGouveia](https://github.com/LuzBGouveia) | [LinkedIn](https://www.linkedin.com/in/lucas-barros-gouveia-09b147355/) |
+| **Luna de Carvalho Guimarães** | **562290** | [lunaguima](https://github.com/lunaguima) | [LinkedIn](https://www.linkedin.com/in/luna-guimar%C3%A3es-b0ba82309/) |
+| **Milton Marcelino** | **564836** | [MiltonMarcelino](https://github.com/MiltonMarcelino) | [LinkedIn](https://www.linkedin.com/in/milton-marcelino-250298142/) |
 
 ---
 
