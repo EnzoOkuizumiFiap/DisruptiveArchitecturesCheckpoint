@@ -1,0 +1,10 @@
+CPZão 20 pontos - 5 pessoas por grupo
+
+09/10 - apresentação
+
+Tema: Chat com RAG do site da matéria
+
+- Sistema completo end-to-end
+- Com deploy
+
+Ponto Importante: QUALIDADE DA RESPOSTA!!
