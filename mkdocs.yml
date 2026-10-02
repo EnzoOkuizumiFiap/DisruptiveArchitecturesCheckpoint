@@ -1,9 +1,9 @@
 site_name: Disruptive Architectures
 site_author: Arnaldo Viana 
 
-repo_url: https://github.com/arnaldojr/DisruptiveArchitectures/
-site_url: https://arnaldojr.github.io/DisruptiveArchitectures/
-repo_name: "Disruptive Architectures"
+repo_url: https://github.com/EnzoOkuizumiFiap/DisruptiveArchitecturesCheckpoint/
+site_url: https://enzookuizumifiap.github.io/DisruptiveArchitecturesCheckpoint/
+repo_name: "Disruptive Architectures Checkpoint"
 
 docs_dir: material
 site_dir: docs
