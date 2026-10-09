@@ -210,13 +210,18 @@ class DocumentProcessor:
 
 
 def sincronizar_widget_mkdocs(root_dir: Path):
-    """DRY: Sincroniza o widget.js (Single Source of Truth) para material/js/chat-widget.js."""
+    """DRY: Sincroniza o widget.js (Single Source of Truth) para material/js/chat-widget.js e docs/js/chat-widget.js."""
     origem = root_dir / "backend" / "app" / "static" / "widget.js"
     destino = root_dir / "material" / "js" / "chat-widget.js"
     if origem.exists():
         destino.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(str(origem), str(destino))
         print(f"[DRY] Widget sincronizado de {origem.name} -> {destino.as_posix()}")
+
+        destino_docs = root_dir / "docs" / "js" / "chat-widget.js"
+        if destino_docs.parent.exists():
+            shutil.copy2(str(origem), str(destino_docs))
+            print(f"[DRY] Widget sincronizado de {origem.name} -> {destino_docs.as_posix()}")
 
 
 def main():

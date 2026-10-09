@@ -1,6 +1,6 @@
 /**
  * Widget de Assistente RAG — Disruptive Architectures (FIAP)
- * Integrado perfeitamente ao tema MkDocs Material com navegação instantânea.
+ * 100% Imune a trocas de páginas SPA e navegação instantânea do MkDocs Material.
  */
 
 (function () {
@@ -21,129 +21,302 @@
 
   const CSS_STYLES = `
     #da-bubble-btn {
-      position: fixed !important; bottom: 24px !important; right: 24px !important; z-index: 99999 !important;
-      width: 58px; height: 58px; border-radius: 50%;
-      background: linear-gradient(135deg, #7928ca 0%, #ff0080 100%);
-      color: white; border: none; cursor: pointer;
-      font-size: 26px; box-shadow: 0 4px 20px rgba(121, 40, 202, 0.4);
-      display: flex !important; align-items: center; justify-content: center;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      z-index: 999999 !important;
+      width: 58px !important;
+      height: 58px !important;
+      border-radius: 50% !important;
+      background: linear-gradient(135deg, #7928ca 0%, #ff0080 100%) !important;
+      color: white !important;
+      border: none !important;
+      cursor: pointer !important;
+      font-size: 26px !important;
+      box-shadow: 0 4px 20px rgba(121, 40, 202, 0.45) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      outline: none !important;
     }
     #da-bubble-btn:hover {
-      transform: scale(1.08) translateY(-2px);
-      box-shadow: 0 6px 24px rgba(121, 40, 202, 0.55);
+      transform: scale(1.08) translateY(-2px) !important;
+      box-shadow: 0 6px 24px rgba(121, 40, 202, 0.6) !important;
     }
     #da-widget-root {
-      position: fixed !important; bottom: 94px !important; right: 24px !important; z-index: 99999 !important;
-      width: 380px; max-width: calc(100vw - 32px); height: 520px; max-height: 75vh;
-      background: rgba(22, 27, 34, 0.94);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-      display: none !important; flex-direction: column; overflow: hidden;
-      font-family: var(--md-text-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-      color: #f0f6fc;
+      position: fixed !important;
+      bottom: 94px !important;
+      right: 24px !important;
+      z-index: 999999 !important;
+      width: 380px !important;
+      max-width: calc(100vw - 32px) !important;
+      height: 520px !important;
+      max-height: 75vh !important;
+      background: rgba(22, 27, 34, 0.96) !important;
+      backdrop-filter: blur(18px) !important;
+      -webkit-backdrop-filter: blur(18px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 18px !important;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+      display: none;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      font-family: var(--md-text-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif) !important;
+      color: #f0f6fc !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
-    #da-widget-root.open { display: flex !important; animation: daFadeIn 0.25s ease; }
+    #da-widget-root.open {
+      display: flex !important;
+      animation: daFadeIn 0.25s ease !important;
+    }
     @keyframes daFadeIn {
       from { opacity: 0; transform: translateY(12px) scale(0.97); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
     #da-widget-header {
-      background: linear-gradient(135deg, #7928ca 0%, #ff0080 100%);
-      padding: 12px 16px; color: white;
-      display: flex; justify-content: space-between; align-items: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      background: linear-gradient(135deg, #7928ca 0%, #ff0080 100%) !important;
+      padding: 12px 16px !important;
+      color: white !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+      flex-shrink: 0 !important;
+      border-top-left-radius: 17px !important;
+      border-top-right-radius: 17px !important;
     }
-    .da-header-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
-    .da-header-actions { display: flex; align-items: center; gap: 6px; }
+    .da-header-title { display: flex !important; align-items: center !important; gap: 8px !important; font-weight: 600 !important; font-size: 14px !important; color: white !important; }
+    .da-header-actions { display: flex !important; align-items: center !important; gap: 6px !important; }
     .da-icon-btn {
-      background: rgba(255,255,255,0.15); border: none; color: white;
-      width: 28px; height: 28px; border-radius: 50%;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; transition: background 0.2s;
+      background: rgba(255,255,255,0.18) !important;
+      border: none !important;
+      color: white !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 50% !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 14px !important;
+      transition: background 0.2s !important;
+      padding: 0 !important;
     }
-    .da-icon-btn:hover { background: rgba(255,255,255,0.3); }
+    .da-icon-btn:hover { background: rgba(255,255,255,0.35) !important; }
     #da-messages-container {
-      flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px;
-      font-size: 13.5px; line-height: 1.5;
+      flex: 1 !important;
+      overflow-y: auto !important;
+      padding: 14px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px !important;
+      font-size: 13.5px !important;
+      line-height: 1.5 !important;
+      background: transparent !important;
     }
-    .da-msg { display: flex; flex-direction: column; max-width: 86%; }
-    .da-msg.user { align-self: flex-end; }
-    .da-msg.bot { align-self: flex-start; }
+    .da-msg { display: flex !important; flex-direction: column !important; max-width: 86% !important; }
+    .da-msg.user { align-self: flex-end !important; }
+    .da-msg.bot { align-self: flex-start !important; }
     .da-bubble {
-      padding: 10px 14px; border-radius: 12px; word-break: break-word;
+      padding: 10px 14px !important;
+      border-radius: 12px !important;
+      word-break: break-word !important;
+      font-size: 13px !important;
+      line-height: 1.45 !important;
     }
     .da-msg.user .da-bubble {
-      background: linear-gradient(135deg, #7928ca, #ff0080);
-      color: white; border-bottom-right-radius: 3px;
+      background: linear-gradient(135deg, #7928ca, #ff0080) !important;
+      color: white !important;
+      border-bottom-right-radius: 3px !important;
     }
     .da-msg.bot .da-bubble {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e6edf3; border-bottom-left-radius: 3px;
+      background: rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #e6edf3 !important;
+      border-bottom-left-radius: 3px !important;
     }
     .da-bubble pre {
-      background: #090d13; border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 8px 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0;
-      font-family: monospace; font-size: 12px;
+      background: #090d13 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      padding: 8px 10px !important;
+      border-radius: 6px !important;
+      overflow-x: auto !important;
+      margin: 6px 0 !important;
+      font-family: monospace !important;
+      font-size: 12px !important;
+      color: #79c0ff !important;
     }
     .da-bubble code {
-      background: rgba(255, 255, 255, 0.1); padding: 2px 4px; border-radius: 4px; font-size: 12px;
+      background: rgba(255, 255, 255, 0.1) !important;
+      padding: 2px 4px !important;
+      border-radius: 4px !important;
+      font-size: 12px !important;
+      color: #e6edf3 !important;
     }
     .da-sources {
-      margin-top: 8px; font-size: 11px; opacity: 0.85; border-top: 1px dashed rgba(255,255,255,0.15);
-      padding-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;
+      margin-top: 8px !important;
+      font-size: 11px !important;
+      opacity: 0.85 !important;
+      border-top: 1px dashed rgba(255,255,255,0.15) !important;
+      padding-top: 6px !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 4px !important;
     }
     .da-source-link {
-      background: rgba(0, 112, 243, 0.2); border: 1px solid rgba(0, 112, 243, 0.4);
-      color: #79c0ff; text-decoration: none; padding: 2px 6px; border-radius: 4px;
+      background: rgba(0, 112, 243, 0.2) !important;
+      border: 1px solid rgba(0, 112, 243, 0.4) !important;
+      color: #79c0ff !important;
+      text-decoration: none !important;
+      padding: 2px 6px !important;
+      border-radius: 4px !important;
     }
-    .da-source-link:hover { text-decoration: underline; }
+    .da-source-link:hover { text-decoration: underline !important; }
     #da-input-area {
-      display: flex; gap: 8px; padding: 10px 14px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(13, 17, 23, 0.6);
+      display: flex !important;
+      gap: 8px !important;
+      padding: 10px 14px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(13, 17, 23, 0.6) !important;
+      flex-shrink: 0 !important;
     }
     #da-input {
-      flex: 1; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px;
-      background: rgba(255, 255, 255, 0.06); color: white; padding: 8px 14px;
-      font-size: 13.5px; outline: none; transition: border-color 0.2s;
+      flex: 1 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 20px !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: white !important;
+      padding: 8px 14px !important;
+      font-size: 13.5px !important;
+      outline: none !important;
+      transition: border-color 0.2s !important;
+      box-sizing: border-box !important;
     }
-    #da-input:focus { border-color: #7928ca; }
+    #da-input:focus { border-color: #7928ca !important; }
     #da-send-btn {
-      width: 36px; height: 36px; border-radius: 50%; border: none;
-      background: linear-gradient(135deg, #7928ca, #ff0080); color: white;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 50% !important;
+      border: none !important;
+      background: linear-gradient(135deg, #7928ca, #ff0080) !important;
+      color: white !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 14px !important;
+      flex-shrink: 0 !important;
+      padding: 0 !important;
     }
-    #da-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    #da-send-btn:disabled { opacity: 0.4 !important; cursor: not-allowed !important; }
     @media (max-width: 480px) {
       #da-widget-root {
-        bottom: 0 !important; right: 0 !important; width: 100vw !important; max-width: 100vw !important;
-        height: 85vh !important; max-height: 85vh !important; border-radius: 18px 18px 0 0 !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 85vh !important;
+        max-height: 85vh !important;
+        border-radius: 18px 18px 0 0 !important;
       }
     }
   `;
 
-  function garantirEstilos() {
+  function aplicarEstilosCriticos(widget, bubble, aberto) {
+    if (bubble) {
+      bubble.style.cssText = `
+        position: fixed !important;
+        bottom: 24px !important;
+        right: 24px !important;
+        z-index: 999999 !important;
+        width: 58px !important;
+        height: 58px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #7928ca 0%, #ff0080 100%) !important;
+        color: white !important;
+        border: none !important;
+        cursor: pointer !important;
+        font-size: 26px !important;
+        box-shadow: 0 4px 20px rgba(121, 40, 202, 0.45) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        outline: none !important;
+      `;
+    }
+    if (widget) {
+      const isMobile = window.innerWidth <= 480;
+      const displayVal = aberto ? "flex" : "none";
+      const bottomVal = isMobile ? "0px" : "94px";
+      const rightVal = isMobile ? "0px" : "24px";
+      const widthVal = isMobile ? "100vw" : "380px";
+      const maxWVal = isMobile ? "100vw" : "calc(100vw - 32px)";
+      const heightVal = isMobile ? "85vh" : "520px";
+      const maxHVal = isMobile ? "85vh" : "75vh";
+      const radiusVal = isMobile ? "18px 18px 0 0" : "18px";
+
+      widget.style.cssText = `
+        position: fixed !important;
+        bottom: ${bottomVal} !important;
+        right: ${rightVal} !important;
+        z-index: 999999 !important;
+        width: ${widthVal} !important;
+        max-width: ${maxWVal} !important;
+        height: ${heightVal} !important;
+        max-height: ${maxHVal} !important;
+        border-radius: ${radiusVal} !important;
+        background: rgba(22, 27, 34, 0.96) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+        display: ${displayVal} !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        color: #f0f6fc !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: var(--md-text-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif) !important;
+      `;
+
+      // Garante folha interna de estilos dentro do próprio widget (à prova de limpeza do head pelo MkDocs)
+      if (!widget.querySelector("#da-widget-scoped-styles")) {
+        const sc = document.createElement("style");
+        sc.id = "da-widget-scoped-styles";
+        sc.textContent = CSS_STYLES;
+        widget.insertBefore(sc, widget.firstChild);
+      }
+    }
+  }
+
+  function garantirEstilosHead() {
     if (!document.getElementById("da-widget-styles")) {
       const style = document.createElement("style");
       style.id = "da-widget-styles";
       style.textContent = CSS_STYLES;
-      document.head.appendChild(style);
+      if (document.head) {
+        document.head.appendChild(style);
+      }
     }
   }
 
   function montarWidget() {
-    garantirEstilos();
+    garantirEstilosHead();
 
     let bubble = document.getElementById("da-bubble-btn");
     let widget = document.getElementById("da-widget-root");
 
     // Se já existem e estão acoplados ao document.body ativo, apenas sincroniza
     if (bubble && widget && document.body && document.body.contains(bubble) && document.body.contains(widget)) {
+      aplicarEstilosCriticos(widget, bubble, estado.aberto);
       if (estado.aberto) {
         widget.classList.add("open");
       } else {
@@ -153,8 +326,8 @@
     }
 
     // Se existiam referências desconectadas ou órfãs pelo swap do MkDocs, limpa
-    if (bubble) bubble.remove();
-    if (widget) widget.remove();
+    if (bubble && (!document.body || !document.body.contains(bubble))) bubble.remove();
+    if (widget && (!document.body || !document.body.contains(widget))) widget.remove();
 
     if (!document.body) return;
 
@@ -186,6 +359,8 @@
     `;
     document.body.appendChild(widget);
 
+    aplicarEstilosCriticos(widget, bubble, estado.aberto);
+
     const input = widget.querySelector("#da-input");
     const sendBtn = widget.querySelector("#da-send-btn");
     const closeBtn = widget.querySelector("#da-close-btn");
@@ -207,14 +382,20 @@
     }
 
     bubble.addEventListener("click", () => {
-      widget.classList.toggle("open");
-      estado.aberto = widget.classList.contains("open");
-      if (estado.aberto) input.focus();
+      estado.aberto = !estado.aberto;
+      aplicarEstilosCriticos(widget, bubble, estado.aberto);
+      if (estado.aberto) {
+        widget.classList.add("open");
+        input.focus();
+      } else {
+        widget.classList.remove("open");
+      }
     });
 
     closeBtn.addEventListener("click", () => {
-      widget.classList.remove("open");
       estado.aberto = false;
+      aplicarEstilosCriticos(widget, bubble, false);
+      widget.classList.remove("open");
     });
 
     resetBtn.addEventListener("click", async () => {
@@ -365,22 +546,48 @@
   }
 
   // Suporte à navegação instantânea do MkDocs Material e ciclo de vida SPA
-  let subscritoInstant = false;
-  try {
-    if (typeof document$ !== "undefined" && typeof document$.subscribe === "function") {
-      document$.subscribe(() => {
+  function assinarDocumentObservable() {
+    if (typeof window.document$ !== "undefined" && typeof window.document$.subscribe === "function") {
+      window.document$.subscribe(() => {
         montarWidget();
       });
-      subscritoInstant = true;
+      return true;
     }
-  } catch (e) {}
+    return false;
+  }
 
-  if (!subscritoInstant) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", montarWidget);
-    } else {
-      montarWidget();
-    }
+  // Tenta assinar imediatamente
+  const assinado = assinarDocumentObservable();
+
+  // Escutas de ciclo de vida do navegador e MkDocs SPA
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", montarWidget);
+  } else {
+    montarWidget();
+  }
+
+  window.addEventListener("load", () => {
+    assinarDocumentObservable();
+    montarWidget();
+  });
+  window.addEventListener("popstate", montarWidget);
+  window.addEventListener("hashchange", montarWidget);
+  window.addEventListener("pageshow", montarWidget);
+  window.addEventListener("resize", () => {
+    const bubble = document.getElementById("da-bubble-btn");
+    const widget = document.getElementById("da-widget-root");
+    if (widget && bubble) aplicarEstilosCriticos(widget, bubble, estado.aberto);
+  });
+
+  // Polling resiliente nos primeiros 3 segundos para garantir conexão ao document$ do MkDocs
+  if (!assinado) {
+    let tentativas = 0;
+    const pollId = setInterval(() => {
+      tentativas++;
+      if (assinarDocumentObservable() || tentativas > 30) {
+        clearInterval(pollId);
+      }
+    }, 100);
   }
 
   // MutationObserver como rede de proteção contra substituição de nós pelo MkDocs
@@ -391,6 +598,9 @@
         const w = document.getElementById("da-widget-root");
         if (!b || !w || !document.body.contains(b) || !document.body.contains(w)) {
           montarWidget();
+        } else {
+          aplicarEstilosCriticos(w, b, estado.aberto);
+          garantirEstilosHead();
         }
       }).observe(document.body, { childList: true, subtree: false });
     }
