@@ -37,7 +37,7 @@ class ConversationMemory(BaseSessionManager):
         """Carrega sessões salvas em disco se existirem e purga expiradas."""
         if self.storage_path and self.storage_path.exists():
             try:
-                data = json.loads(self.storage_path.read_text(encoding="utf-8"))
+                data = json.loads(self.storage_path.read_text(encoding="utf-8-sig"))
                 self.sessions = data
                 self._prune_expired_sessions(time.time())
                 logger.info(f"ConversationMemory: {len(self.sessions)} sessões ativas carregadas de {self.storage_path.name}")

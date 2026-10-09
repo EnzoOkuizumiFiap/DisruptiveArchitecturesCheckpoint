@@ -37,7 +37,7 @@ class RAGEngine:
             return
 
         try:
-            self.chunks = json.loads(self.knowledge_path.read_text(encoding="utf-8"))
+            self.chunks = json.loads(self.knowledge_path.read_text(encoding="utf-8-sig"))
             logger.info(f"RAGEngine: {len(self.chunks)} chunks carregados da base de conhecimento.")
 
             # Inicializa motor léxico BM25

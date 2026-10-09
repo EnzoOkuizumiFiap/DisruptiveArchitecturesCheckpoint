@@ -61,7 +61,7 @@ def main():
         print(f"[ERRO] {KNOWLEDGE_PATH} não encontrado!")
         sys.exit(1)
 
-    chunks = json.loads(KNOWLEDGE_PATH.read_text(encoding="utf-8"))
+    chunks = json.loads(KNOWLEDGE_PATH.read_text(encoding="utf-8-sig"))
     total = len(chunks)
     print(f"[*] Iniciando geração de embeddings para {total} chunks usando '{settings.GEMINI_EMBEDDING_MODEL}'...")
 
