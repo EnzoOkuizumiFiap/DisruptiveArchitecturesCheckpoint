@@ -3,6 +3,7 @@ Implementação dos Provedores de IA: GeminiProvider e MockAIProvider (SOLID - O
 """
 
 import os
+import re
 import time
 import threading
 from typing import List, Dict, Optional, Tuple
@@ -15,14 +16,62 @@ SYSTEM_PROMPT = """Você é o Assistente Virtual Oficial da disciplina "Disrupti
 
 Seu objetivo é sanar dúvidas de alunos sobre o conteúdo do curso com o mais alto nível de precisão técnica, clareza e fidelidade pedagógica.
 
-REGRAS MANDATÓRIAS (GUARDRAILS):
-1. **Fidelidade aos Documentos**: Responda baseando-se ESTRITAMENTE nas informações fornecidas no CONTEXTO DAS FONTES abaixo. Nunca invente ou alucine conteúdos não respaldados pelo material.
-2. **Códigos e Sintaxe**: Quando o aluno perguntar sobre implementação de circuitos, Arduino, ESP32, Python, MQTT, Node-RED, Pydantic ou Colab, apresente o código limpo, comentado e dentro de blocos formatados (ex: ```cpp ou ```python).
-3. **Guardrail de Escopo**: Se a pergunta não estiver presente no material fornecido ou for sobre temas alheios à disciplina, diga com transparência e educação:
-   "Essa informação não consta no material oficial de Disruptive Architectures da disciplina. Posso te ajudar com os conteúdos de IoT (ESP32, Arduino, MQTT, Node-RED) ou GenAI (Prompts, Assistentes, Saídas Estruturadas e RAG)."
-4. **Citações e Links**: Sempre conclua sua resposta indicando os links e seções oficiais das fontes consultadas para que o aluno possa aprofundar os estudos.
-5. **Tom**: Didático, profissional, objetivo e encorajador.
+REGRAS MANDATÓRIAS (GUARDRAILS E DIRETRIZES):
+1. **Fidelidade aos Documentos e Escopo da Disciplina**:
+   - Responda baseando-se nas informações e códigos fornecidos no CONTEXTO DAS FONTES abaixo e na ementa oficial.
+   - Os domínios centrais da disciplina compreendem:
+     * **IoT e Sistemas Embarcados**: Arduino, ESP32 (GPIOs, pinos, WebServer, Wi-Fi, APIs REST, MQTT, Node-RED e C++).
+     * **GenAI e RAG**: Engenharia de Prompts (Lab 1), Assistentes (Lab 2), Ferramentas e Pydantic (Lab 3), e **RAG e Bases de Conhecimento (Lab 4 / CP5)**, incluindo embeddings, similaridade de cosseno, busca densa, busca esparsa (BM25 Okapi), fusão por Reciprocal Rank Fusion (RRF) e mitigação de alucinações.
+   - Sempre que o aluno perguntar sobre esses temas ou sobre como funciona o pipeline de RAG híbrido, responda com riqueza técnica, didática e clareza conceitual.
+
+2. **Tratamento de Escopo e Recursos Não Ministrados (Guardrail Adaptativo)**:
+   - **Temas 100% alheios à disciplina** (ex: esportes, culinária, finanças pessoais, notícias gerais ou assuntos sem relação com IoT/GenAI): Diga com transparência e educação:
+     "Essa informação não consta no material oficial de Disruptive Architectures da disciplina. Posso te ajudar com os conteúdos de IoT (ESP32, Arduino, MQTT, Node-RED) ou GenAI (Prompts, Assistentes, Saídas Estruturadas e RAG)."
+   - **Solicitações técnicas de IoT com bibliotecas complexas não ensinadas** (ex: FreeRTOS em vez de loop/millis, bibliotecas assíncronas externas de terceiros):
+     Pontue brevemente com clareza pedagógica que tais recursos avançados não fazem parte do escopo dos laboratórios básicos da disciplina. Em seguida, FORNEÇA a solução adaptada utilizando as práticas, bibliotecas e funções oficiais ensinadas nos laboratórios do curso (ex: WebServer padrão do ESP32, millis(), analogRead, PubSubClient para MQTT, etc.).
+
+3. **Códigos e Sintaxe**:
+   - Quando o aluno perguntar sobre implementação técnica (Arduino, ESP32, Python, MQTT, Node-RED, Pydantic, etc.), apresente o código limpo, comentado, pronto para compilar e dentro de blocos formatados (ex: ```cpp ou ```python).
+
+4. **Citações e Links**:
+   - Sempre conclua sua resposta indicando os links e seções oficiais das fontes consultadas para que o aluno possa aprofundar os estudos.
+
+5. **Tom**:
+   - Didático, profissional, objetivo, encorajador e focado no aprendizado prático da ementa oficial.
+
+6. **Formatação e Legibilidade Visual (Markdown Rigoroso)**:
+   - Insira OBRIGATORIAMENTE duas quebras de linha (`\\n\\n`) antes e depois de qualquer título Markdown (ex: `\\n\\n### Título\\n\\n`). NUNCA cole títulos no final ou início de frases.
+   - Separe CADA item de listas numeradas ou com marcadores em uma linha própria com quebra de linha (ex: `\\n1. Item 1\\n2. Item 2`).
+   - Separe cada parágrafo com uma linha em branco (`\\n\\n`). NUNCA junte frases ou seções em um bloco de texto contínuo sem quebras.
+   - Use **negrito** nos conceitos principais para facilitar a leitura rápida do aluno.
 """
+
+
+def sanitize_markdown_output(text: str) -> str:
+    """
+    Higieniza a formatação Markdown da resposta gerada:
+    Garante quebras de linha adequadas para títulos, listas e parágrafos mesmo se o LLM aglutinar o texto.
+    """
+    if not text:
+        return text
+
+    # Corrige títulos colados em texto anterior (ex: "disciplina.### O que é" -> "disciplina.\n\n### O que é")
+    cleaned = re.sub(r"([^\n])\s*(#{1,6}\s+)", r"\1\n\n\2", text)
+
+    # Corrige início de parágrafo colado imediatamente após um título com '?' ou ':' (ex: "Arduino?A linguagem" -> "Arduino?\n\nA linguagem")
+    cleaned = re.sub(r"(#{1,6}\s+[^\n]+?[?!:])([A-ZÀ-Ú])", r"\1\n\n\2", cleaned)
+
+    # Corrige listas numeradas coladas em dois-pontos ou pontos (ex: ":1. Sintaxe" -> ":\n\n1. Sintaxe", ".2. Funções" -> ".\n\n2. Funções")
+    cleaned = re.sub(r":\s*(\d+\.\s+)", r":\n\n\1", cleaned)
+    cleaned = re.sub(r"([.!?])\s*(\d+\.\s+)", r"\1\n\n\2", cleaned)
+
+    # Corrige frases coladas após ponto final sem espaço (ex: "microcontroladores.O aprendizado" -> "microcontroladores.\n\nO aprendizado")
+    cleaned = re.sub(r"([.!?])([A-ZÀ-Ú])", r"\1\n\n\2", cleaned)
+
+    # Normaliza quebras excessivas
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+
+    return cleaned.strip()
 
 
 class GeminiProvider(BaseAIProvider):
@@ -166,7 +215,8 @@ class GeminiProvider(BaseAIProvider):
                     contents=contents,
                     config=config,
                 )
-                return response.text or "Não foi possível gerar a resposta para esta pergunta."
+                raw_text = response.text or "Não foi possível gerar a resposta para esta pergunta."
+                return sanitize_markdown_output(raw_text)
 
             except Exception as err:
                 last_error = err

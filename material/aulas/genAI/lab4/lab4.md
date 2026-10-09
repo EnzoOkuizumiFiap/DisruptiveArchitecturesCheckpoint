@@ -100,3 +100,36 @@ Esse processo reduz respostas sem fundamento, mas não elimina erros. RAG depend
 ## Escopo didático
 
 Vamos criar uma base de dados fictícia dentro do próprio notebook para que ele funcione sozinho no Colab. Ela contém pequenos trechos fictícios sobre suporte, garantia, devolução, privacidade e produtos.
+
+---
+
+## Recuperação Híbrida: Busca Densa (Vetores) + Busca Esparsa (BM25)
+
+Em aplicações reais de engenharia e IoT (como consulta a datasheets, nomes de pinos do ESP32 como `GPIO2`, `ADC1_CH0`, ou códigos de erro de compilação C++), uma abordagem exclusivamente vetorial (densa) apresenta limitações conhecidas.
+
+### Limitações da Busca Puramente Vetorial:
+1. **Termos fora de vocabulário ou alfanuméricos exatos:** Códigos de erro (`fatal error: WiFi.h: No such file or directory`) ou identificadores de registradores e pinos nem sempre possuem proximidade semântica no espaço latente de embeddings.
+2. **Perda de precisão léxica:** A busca vetorial aproxima textos por conceito global, o que pode trazer trechos contextualmente próximos, mas sem o termo exato pesquisado.
+
+### Como funciona a Recuperação Híbrida:
+A recuperação híbrida combina o melhor de dois mundos no pipeline do Lab 4:
+- **Busca Densa (Vetorial via Similaridade de Cosseno):** Mapeia a intenção e o significado semântico conceitual da pergunta do usuário através de embeddings densos.
+- **Busca Esparsa (Léxica via BM25 Okapi):** Indexa a frequência de termos e a frequência inversa nos documentos (TF-IDF aprimorado), garantindo correspondência exata para nomes de bibliotecas, pinos e erros de sintaxe.
+
+### Fusão de Rankings: Reciprocal Rank Fusion (RRF)
+Como as pontuações do BM25 (valores arbitrários não delimitados $[0, \infty)$) e da similaridade de cosseno (intervalo $[-1, 1]$) possuem naturezas e escalas matemáticas completamente heterogêneas, somá-las ou multiplicá-las diretamente causaria distorções severas.
+
+A solução padrão na indústria é o **Reciprocal Rank Fusion (RRF)**, que normaliza e combina os resultados com base exclusivamente nas suas posições ordinais (ranks) em cada lista:
+
+$$RRF(d) = \sum_{m \in M} \frac{w_m}{k + rank_m(d)}$$
+
+Onde:
+- $rank_m(d)$ é a posição (1º, 2º, 3º...) do documento $d$ no motor de busca $m$ (BM25 ou Vetorial);
+- $k$ é uma constante de suavização (geralmente $k = 60$) para evitar que o primeiro colocado domine desproporcionalmente o ranking;
+- $w_m$ é o peso atribuído a cada motor (ex: $0.5$ para BM25 e $0.5$ para vetorial).
+
+### Vantagens da Abordagem Híbrida com RRF:
+1. **Resiliência a Termos Exatos:** Localiza instantaneamente termos técnicos precisos (ex: `GPIO13`, `PubSubClient`, `analogRead`).
+2. **Compreensão Semântica Ampla:** Mantém a capacidade de responder dúvidas conceituais formuladas de maneiras diferentes das palavras originais da apostila.
+3. **Qualidade Superior de Contexto:** Reduz alucinações entregando ao modelo os chunks de maior relevância tanto léxica quanto semântica.
+

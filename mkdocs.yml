@@ -68,6 +68,7 @@ extra_javascript:
 
 extra_css:
  - css/termynal.css
+ - css/chat-widget.css
 
 # Extensions / plugins
 plugins:

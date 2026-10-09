@@ -900,7 +900,13 @@
       bubble.className = "bubble";
 
       if (who === "model" || who === "bot") {
-        let textoProcessado = texto;
+        let textoProcessado = (texto || "")
+          .replace(/([^\n])\s*(#{1,6}\s+)/g, "$1\n\n$2")
+          .replace(/(#{1,6}\s+[^\n]+?[?!:])([A-ZÀ-Ú])/g, "$1\n\n$2")
+          .replace(/:\s*(\d+\.\s+)/g, ":\n\n$1")
+          .replace(/([.!?])\s*(\d+\.\s+)/g, "$1\n\n$2")
+          .replace(/([.!?])([A-ZÀ-Ú])/g, "$1\n\n$2");
+
         if (window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")) {
           textoProcessado = textoProcessado.replace(/https:\/\/[^/]+\.github\.io\/[^/]+\//g, "http://127.0.0.1:8080/DisruptiveArchitectures/");
         }
